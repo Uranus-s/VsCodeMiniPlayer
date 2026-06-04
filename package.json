@@ -1,0 +1,96 @@
+{
+  "name": "mini-player",
+  "displayName": "Mini Player",
+  "description": "Play local videos in a compact VS Code bottom panel.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --external:vscode --format=cjs --outfile=dist/extension.js && tsc --noEmit",
+    "test": "tsx --test test/extensionManifest.test.ts test/config.test.ts test/recentStore.test.ts test/subtitles.test.ts test/webviewHtml.test.ts test/commandErrors.test.ts test/wait.test.ts test/playerScript.test.ts test/playerStyle.test.ts",
+    "compile": "tsc --noEmit"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "miniPlayerPanel",
+          "title": "Mini Player",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "miniPlayerPanel": [
+        {
+          "id": "miniPlayer.playerView",
+          "name": "Mini Player",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "miniPlayer.openVideo", "title": "Mini Player: Open Video" },
+      { "command": "miniPlayer.togglePanel", "title": "Mini Player: Toggle Panel" },
+      { "command": "miniPlayer.quickHide", "title": "Mini Player: Quick Hide" },
+      { "command": "miniPlayer.openSubtitle", "title": "Mini Player: Open Subtitle" },
+      { "command": "miniPlayer.openRecent", "title": "Mini Player: Open Recent" },
+      { "command": "miniPlayer.toggleCornerPosition", "title": "Mini Player: Toggle Corner Position" }
+    ],
+    "keybindings": [
+      {
+        "command": "miniPlayer.quickHide",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h"
+      }
+    ],
+    "configuration": {
+      "title": "Mini Player",
+      "properties": {
+        "miniPlayer.hideBehavior": {
+          "type": "string",
+          "enum": ["pauseAndHide", "keepPlayingAndHide"],
+          "default": "pauseAndHide",
+          "description": "Controls what happens when Mini Player quick hide is triggered."
+        },
+        "miniPlayer.cornerPosition": {
+          "type": "string",
+          "enum": ["left", "right"],
+          "default": "right",
+          "description": "Controls whether the compact Mini Player preview is pinned to the left or right side of the panel."
+        },
+        "miniPlayer.defaultVolume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7,
+          "description": "Default video volume for Mini Player."
+        },
+        "miniPlayer.autoLoadMatchingSubtitle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically load a same-name subtitle next to the selected video."
+        },
+        "miniPlayer.recentLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10,
+          "description": "Maximum number of recent Mini Player entries to keep."
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "1.90.0",
+    "esbuild": "^0.21.5",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.2"
+  },
+  "dependencies": {}
+}

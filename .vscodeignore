@@ -1,0 +1,7 @@
+.git/**
+.superpowers/**
+docs/**
+test/**
+src/**
+tsconfig.json
+*.map
