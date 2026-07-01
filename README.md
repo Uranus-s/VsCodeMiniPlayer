@@ -141,6 +141,18 @@ VS Code 调试：
 2. 按 `F5` 启动 Extension Host。
 3. 在新窗口中运行 `Mini Player: Open Video`。
 
+### 维护注意事项
+
+- MKV 支持依赖 `ffmpeg-static`，打包时 `ffmpeg.exe` 会包含进 VSIX。不要从 `npm run build` 里移除 `--external:ffmpeg-static`，否则 esbuild 会尝试错误地打包 ffmpeg 模块路径。
+- MKV 不直接交给 Webview 播放，而是在 `src/videoPreparation.ts` 中转换到 `context.globalStorageUri/remuxed-videos` 缓存目录。原始视频不会被修改。
+- 缓存文件名包含 `REMUX_CACHE_VERSION`。修改 ffmpeg 参数、容器格式、音频编码或其他会影响播放兼容性的行为时，必须提升这个版本号，否则用户会继续复用旧缓存，看起来像代码没有生效。
+- VS Code Webview 的实际媒体兼容性不等同于系统播放器。排查过程中确认过：同一环境下 AAC 音轨的缓存 MP4 可能无声，而 PCM `pcm_s16be (twos)` 可以正常出声。因此当前 MKV 准备流程使用 MOV muxer 写 `.mp4` 扩展，并把音频转为 `pcm_s16be`。
+- 不要把 MKV 准备流程简单改回 `-c copy` 或 AAC，除非在 VS Code Webview 中验证过目标文件有声音。系统播放器、浏览器或 ffmpeg 能播放不代表 VS Code Webview 有声音。
+- `media/player.js` 里的音频状态日志和 Web Audio 连接用于定位 Webview 播放问题。看到 `Volume: 70% | Muted: no | Ready: 4` 和 `Audio output connected.` 只能说明播放器内部状态正常，不能证明容器/音频编码一定兼容。
+- 安装同版本 VSIX 后，当前 VS Code 窗口可能仍在用已加载的旧扩展进程。修改打包行为后建议提升 `package.json` 版本号，并让用户运行 `Developer: Reload Window` 或完全重启 VS Code。
+- 如果用户报告“还是旧行为”，先检查活动日志是否出现 `Preparing MKV for VS Code playback... 0%`，再检查缓存目录里最新文件的时间和 ffmpeg 流信息。不要只看源码判断。
+- `mini-player-*.vsix` 被 `.gitignore` 忽略，打包产物不进入提交。临时探针视频也不要放在仓库根目录，避免被 `vsce package` 收进 VSIX。
+
 ### 项目结构
 
 ```text
@@ -297,6 +309,18 @@ Debug in VS Code:
 1. Open this repository in VS Code.
 2. Press `F5` to launch the Extension Host.
 3. Run `Mini Player: Open Video` in the new window.
+
+### Maintenance Notes
+
+- MKV support depends on `ffmpeg-static`, and `ffmpeg.exe` is included in the VSIX. Do not remove `--external:ffmpeg-static` from `npm run build`; esbuild should not try to bundle the ffmpeg module path.
+- MKV files are not passed directly to the Webview. `src/videoPreparation.ts` prepares cached files under `context.globalStorageUri/remuxed-videos`; original videos are never modified.
+- Cache names include `REMUX_CACHE_VERSION`. Bump it whenever ffmpeg arguments, container format, audio codec, or other playback compatibility behavior changes. Otherwise users will keep reusing stale cache files and the new code will appear ineffective.
+- VS Code Webview media compatibility is not the same as the system player. In this environment, cached MP4 files with AAC audio could be silent, while PCM `pcm_s16be (twos)` played correctly. The current MKV preparation flow therefore writes a `.mp4` extension with the MOV muxer and transcodes audio to `pcm_s16be`.
+- Do not casually change MKV preparation back to `-c copy` or AAC unless the resulting file has been verified with audio inside the VS Code Webview. Playback in the system player, a browser, or ffmpeg is not enough.
+- The audio state logging and Web Audio connection in `media/player.js` are diagnostic safeguards for Webview playback. Seeing `Volume: 70% | Muted: no | Ready: 4` and `Audio output connected.` only proves the player state is sane; it does not prove the container/audio codec is compatible.
+- Installing a VSIX with the same extension version can leave the current VS Code window running the already-loaded extension host. After packaging behavior changes, bump `package.json` version and ask users to run `Developer: Reload Window` or fully restart VS Code.
+- If a user reports old behavior, first check whether the activity log includes `Preparing MKV for VS Code playback... 0%`, then inspect the newest cache file timestamp and ffmpeg stream info. Do not rely on source inspection alone.
+- `mini-player-*.vsix` is ignored by `.gitignore` and should not be committed. Do not leave temporary probe videos in the repository root; `vsce package` will include them in the VSIX.
 
 ### Project Structure
 
