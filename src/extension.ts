@@ -11,6 +11,7 @@ import { detectSubtitleFormat, matchingSubtitleCandidates } from './subtitles/ma
 import { convertSrtToVtt } from './subtitles/srt';
 import { normalizeVtt } from './subtitles/vtt';
 import type { CornerPosition, RecentPlaybackItem, SubtitlePayload } from './types';
+import { clearVideoCacheDirectory, ensureVideoCacheDirectory } from './videoCache';
 import { preparePlayableVideo } from './videoPreparation';
 import { assertSupportedVideoPath, SUPPORTED_VIDEO_EXTENSIONS } from './videoFormats';
 
@@ -33,6 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
     () => void runCommand(() => openSubtitle(panel, recentStore)),
     () => void runCommand(() => openRecent(panel, recentStore)),
     () => void runCommand(() => toggleCornerPosition(panel)),
+    () => void runCommand(() => openVideoCache(panel)),
+    () => void runCommand(() => clearVideoCache(panel)),
   );
 
   context.subscriptions.push(
@@ -208,6 +211,29 @@ async function saveActiveRecent(recentStore: RecentStore): Promise<void> {
 function readConfig() {
   const config = vscode.workspace.getConfiguration('miniPlayer');
   return readMiniPlayerConfig((key) => config.get(key));
+}
+
+async function openVideoCache(panel: PlayerPanel): Promise<void> {
+  const cacheDir = getVideoCacheDir(panel);
+  await ensureVideoCacheDirectory(cacheDir);
+  await vscode.env.openExternal(vscode.Uri.file(cacheDir));
+  await panel.appendActivity(`Opened MKV cache folder: ${cacheDir}`);
+}
+
+async function clearVideoCache(panel: PlayerPanel): Promise<void> {
+  const confirmed = await vscode.window.showWarningMessage(
+    'Delete all cached MKV playback files? Original videos and recent playback entries will not be changed.',
+    { modal: true },
+    'Clear Cache',
+  );
+  if (confirmed !== 'Clear Cache') {
+    return;
+  }
+
+  const result = await clearVideoCacheDirectory(getVideoCacheDir(panel));
+  const entryLabel = result.deletedEntries === 1 ? 'entry' : 'entries';
+  await panel.appendActivity(`Cleared MKV cache: ${result.deletedEntries} ${entryLabel} removed.`);
+  void vscode.window.showInformationMessage(`Mini Player cache cleared (${result.deletedEntries} ${entryLabel} removed).`);
 }
 
 function getVideoCacheDir(panel: PlayerPanel): string {

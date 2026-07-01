@@ -13,6 +13,7 @@ describe('player responsive layout styles', () => {
     assert.match(playerStyle, /\.activity-log\s*{[^}]*grid-row:\s*1/s);
     assert.match(playerStyle, /\.video-frame\s*{[^}]*grid-row:\s*1/s);
     assert.match(playerStyle, /\.toolbar\s*{[^}]*grid-row:\s*2/s);
+    assert.match(playerStyle, /\.toolbar\s*{[^}]*grid-template-columns:\s*1fr auto minmax\(64px,\s*104px\) auto auto auto auto auto/s);
     assert.match(playerStyle, /\.corner-right \.activity-log\s*{[^}]*grid-column:\s*1/s);
     assert.match(playerStyle, /\.corner-right \.video-frame\s*{[^}]*grid-column:\s*2/s);
     assert.match(playerStyle, /\.corner-left \.video-frame\s*{[^}]*grid-column:\s*1/s);

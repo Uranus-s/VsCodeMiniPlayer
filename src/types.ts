@@ -50,4 +50,6 @@ export type WebviewToExtensionMessage =
   | { type: 'playbackState'; position: number; duration: number; paused: boolean; volume: number; muted?: boolean }
   | { type: 'requestSubtitle' }
   | { type: 'requestRecent' }
-  | { type: 'requestToggleCorner' };
+  | { type: 'requestToggleCorner' }
+  | { type: 'requestOpenCache' }
+  | { type: 'requestClearCache' };

@@ -11,7 +11,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --external:vscode --external:ffmpeg-static --format=cjs --outfile=dist/extension.js && tsc --noEmit",
-    "test": "tsx --test test/extensionManifest.test.ts test/config.test.ts test/recentStore.test.ts test/subtitles.test.ts test/webviewHtml.test.ts test/commandErrors.test.ts test/wait.test.ts test/playerScript.test.ts test/playerStyle.test.ts test/playerPanel.test.ts test/videoFormats.test.ts test/videoPreparation.test.ts",
+    "test": "tsx --test test/extensionManifest.test.ts test/config.test.ts test/recentStore.test.ts test/subtitles.test.ts test/webviewHtml.test.ts test/commandErrors.test.ts test/wait.test.ts test/playerScript.test.ts test/playerStyle.test.ts test/playerPanel.test.ts test/videoFormats.test.ts test/videoPreparation.test.ts test/videoCache.test.ts",
     "compile": "tsc --noEmit"
   },
   "contributes": {

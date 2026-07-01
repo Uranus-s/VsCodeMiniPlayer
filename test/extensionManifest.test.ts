@@ -27,7 +27,7 @@ describe('extension manifest', () => {
     assert.match(manifest.scripts.build, /--outfile=dist\/extension\.js/);
     assert.equal(
       manifest.scripts.test,
-      'tsx --test test/extensionManifest.test.ts test/config.test.ts test/recentStore.test.ts test/subtitles.test.ts test/webviewHtml.test.ts test/commandErrors.test.ts test/wait.test.ts test/playerScript.test.ts test/playerStyle.test.ts test/playerPanel.test.ts test/videoFormats.test.ts test/videoPreparation.test.ts',
+      'tsx --test test/extensionManifest.test.ts test/config.test.ts test/recentStore.test.ts test/subtitles.test.ts test/webviewHtml.test.ts test/commandErrors.test.ts test/wait.test.ts test/playerScript.test.ts test/playerStyle.test.ts test/playerPanel.test.ts test/videoFormats.test.ts test/videoPreparation.test.ts test/videoCache.test.ts',
     );
     assert.equal(manifest.scripts.compile, 'tsc --noEmit');
   });

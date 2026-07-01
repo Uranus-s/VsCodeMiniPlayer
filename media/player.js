@@ -3,6 +3,8 @@ const video = document.getElementById('video');
 const title = document.getElementById('title');
 const subtitleButton = document.getElementById('subtitle-button');
 const recentButton = document.getElementById('recent-button');
+const openCacheButton = document.getElementById('open-cache-button');
+const clearCacheButton = document.getElementById('clear-cache-button');
 const muteButton = document.getElementById('mute-button');
 const volumeSlider = document.getElementById('volume-slider');
 const cornerButton = document.getElementById('corner-button');
@@ -23,6 +25,8 @@ appendActivity('Player panel ready.');
 
 subtitleButton.addEventListener('click', () => vscode.postMessage({ type: 'requestSubtitle' }));
 recentButton.addEventListener('click', () => vscode.postMessage({ type: 'requestRecent' }));
+openCacheButton.addEventListener('click', () => vscode.postMessage({ type: 'requestOpenCache' }));
+clearCacheButton.addEventListener('click', () => vscode.postMessage({ type: 'requestClearCache' }));
 cornerButton.addEventListener('click', () => vscode.postMessage({ type: 'requestToggleCorner' }));
 muteButton.addEventListener('click', () => {
   video.muted = !video.muted;

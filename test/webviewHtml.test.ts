@@ -22,6 +22,8 @@ describe('createPlayerHtml', () => {
     assert.match(html, /id="mute-button"/);
     assert.match(html, /id="volume-slider"/);
     assert.match(html, /id="corner-button"/);
+    assert.match(html, /id="open-cache-button"/);
+    assert.match(html, /id="clear-cache-button"/);
     assert.match(html, /id="activity-log"/);
     assert.match(html, /<script nonce="fixed-nonce" src="vscode-resource:\/media\/player\.js"><\/script>/);
   });

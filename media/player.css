@@ -106,7 +106,7 @@ video {
   grid-row: 2;
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr auto minmax(64px, 104px) auto auto auto;
+  grid-template-columns: 1fr auto minmax(64px, 104px) auto auto auto auto auto;
   gap: 8px;
   align-items: center;
   padding: 4px 8px;

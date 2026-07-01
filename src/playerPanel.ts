@@ -31,6 +31,8 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
     private readonly onRequestSubtitle: () => void,
     private readonly onRequestRecent: () => void,
     private readonly onRequestToggleCorner: () => void,
+    private readonly onRequestOpenCache: () => void,
+    private readonly onRequestClearCache: () => void,
   ) {
     this.cornerPosition = initialCornerPosition;
     this.resourceRoots = [context.extensionUri];
@@ -168,6 +170,12 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
     }
     if (message.type === 'requestToggleCorner') {
       this.onRequestToggleCorner();
+    }
+    if (message.type === 'requestOpenCache') {
+      this.onRequestOpenCache();
+    }
+    if (message.type === 'requestClearCache') {
+      this.onRequestClearCache();
     }
   }
 

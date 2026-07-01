@@ -34,6 +34,8 @@ export function createPlayerHtml(options: PlayerHtmlOptions): string {
       <button id="corner-button" type="button" aria-label="Switch mini player side">Right</button>
       <button id="subtitle-button" type="button">Subtitle</button>
       <button id="recent-button" type="button">Recent</button>
+      <button id="open-cache-button" type="button">Open Cache</button>
+      <button id="clear-cache-button" type="button">Clear Cache</button>
     </footer>
   </main>
   <script nonce="${nonce}" src="${options.scriptUri}"></script>

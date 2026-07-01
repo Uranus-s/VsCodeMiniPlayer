@@ -18,4 +18,13 @@ describe('player panel state restore', () => {
       /this\.latestState = \{ position: message\.position, volume: message\.volume, muted: message\.muted === true \};/,
     );
   });
+
+  it('forwards cache management requests from the webview to extension callbacks', () => {
+    assert.match(playerPanelSource, /private readonly onRequestOpenCache: \(\) => void/);
+    assert.match(playerPanelSource, /private readonly onRequestClearCache: \(\) => void/);
+    assert.match(playerPanelSource, /message\.type === 'requestOpenCache'/);
+    assert.match(playerPanelSource, /this\.onRequestOpenCache\(\)/);
+    assert.match(playerPanelSource, /message\.type === 'requestClearCache'/);
+    assert.match(playerPanelSource, /this\.onRequestClearCache\(\)/);
+  });
 });

@@ -51,4 +51,9 @@ describe('player script activity log', () => {
     assert.match(playerScript, /mediaAudioSource\.connect\(mediaAudioContext\.destination\)/);
     assert.match(playerScript, /Audio output connected\./);
   });
+
+  it('posts cache management requests from toolbar buttons', () => {
+    assert.match(playerScript, /openCacheButton\.addEventListener\('click', \(\) => vscode\.postMessage\(\{ type: 'requestOpenCache' \}\)\)/);
+    assert.match(playerScript, /clearCacheButton\.addEventListener\('click', \(\) => vscode\.postMessage\(\{ type: 'requestClearCache' \}\)\)/);
+  });
 });
