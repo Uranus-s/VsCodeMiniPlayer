@@ -24,6 +24,16 @@ describe('player script activity log', () => {
     assert.match(playerScript, /appendActivity\(message\.message\)/);
   });
 
+  it('keeps up to 100 activity log lines for scrollback', () => {
+    assert.match(playerScript, /MAX_ACTIVITY_LOG_LINES\s*=\s*100/);
+    assert.match(playerScript, /activityLogLines\.children\.length > MAX_ACTIVITY_LOG_LINES/);
+  });
+
+  it('does not force the activity log to the bottom after the user scrolls up', () => {
+    assert.match(playerScript, /const shouldStickToBottom = isActivityLogPinnedToBottom\(\);/);
+    assert.match(playerScript, /if \(shouldStickToBottom\) \{\s*activityLogLines\.scrollTop = activityLogLines\.scrollHeight;\s*\}/s);
+  });
+
   it('logs runtime audio state for playback diagnostics', () => {
     assert.match(playerScript, /logAudioState\('Media metadata loaded'\)/);
     assert.match(playerScript, /logAudioState\('Playback started'\)/);

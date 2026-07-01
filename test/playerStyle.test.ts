@@ -22,4 +22,10 @@ describe('player responsive layout styles', () => {
     assert.match(playerStyle, /video\s*{[^}]*position:\s*absolute/s);
     assert.match(playerStyle, /video\s*{[^}]*inset:\s*0/s);
   });
+
+  it('allows the activity log lines to scroll vertically', () => {
+    assert.match(playerStyle, /\.activity-log-lines\s*{[^}]*overflow-y:\s*auto/s);
+    assert.match(playerStyle, /\.activity-log-lines\s*{[^}]*overflow-x:\s*hidden/s);
+    assert.doesNotMatch(playerStyle, /\.activity-log-lines\s*{[^}]*overflow:\s*hidden/s);
+  });
 });

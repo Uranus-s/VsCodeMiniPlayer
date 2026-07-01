@@ -8,6 +8,7 @@ const volumeSlider = document.getElementById('volume-slider');
 const cornerButton = document.getElementById('corner-button');
 const assLayer = document.getElementById('ass-layer');
 const activityLogLines = document.getElementById('activity-log-lines');
+const MAX_ACTIVITY_LOG_LINES = 100;
 
 let activeBlobUrl = undefined;
 let activeSubtitleTrack = undefined;
@@ -393,17 +394,24 @@ function formatClockTime() {
   return new Date().toLocaleTimeString([], { hour12: false });
 }
 
+function isActivityLogPinnedToBottom() {
+  return activityLogLines.scrollHeight - activityLogLines.scrollTop - activityLogLines.clientHeight <= 2;
+}
+
 function appendActivity(message) {
+  const shouldStickToBottom = isActivityLogPinnedToBottom();
   const entry = document.createElement('div');
   entry.className = 'activity-log-line';
   entry.textContent = `[${new Date().toLocaleTimeString([], { hour12: false })}] ${message}`;
   activityLogLines.append(entry);
 
-  while (activityLogLines.children.length > 12) {
+  while (activityLogLines.children.length > MAX_ACTIVITY_LOG_LINES) {
     activityLogLines.firstElementChild?.remove();
   }
 
-  activityLogLines.scrollTop = activityLogLines.scrollHeight;
+  if (shouldStickToBottom) {
+    activityLogLines.scrollTop = activityLogLines.scrollHeight;
+  }
 }
 
 vscode.postMessage({ type: 'ready' });

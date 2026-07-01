@@ -47,7 +47,8 @@ body {
 
 .activity-log-lines {
   height: calc(100% - 24px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-family: var(--vscode-editor-font-family);
   font-size: 11px;
   line-height: 1.55;
