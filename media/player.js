@@ -14,6 +14,9 @@ let activeSubtitleTrack = undefined;
 let assCues = [];
 let lastVolumeLogAt = 0;
 let progressLogTimer = undefined;
+let mediaAudioContext = undefined;
+let mediaAudioSource = undefined;
+let mediaAudioOutputConnected = false;
 
 appendActivity('Player panel ready.');
 
@@ -35,7 +38,10 @@ volumeSlider.addEventListener('input', () => {
 
 video.addEventListener('error', () => {
   appendActivity('Video playback error reported.');
-  vscode.postMessage({ type: 'mediaError', message: 'The selected video cannot be played in VS Code.' });
+  vscode.postMessage({
+    type: 'mediaError',
+    message: 'This video cannot be played in VS Code. Use a file encoded with codecs supported by VS Code.',
+  });
 });
 
 video.addEventListener('timeupdate', () => {
@@ -44,10 +50,16 @@ video.addEventListener('timeupdate', () => {
 });
 video.addEventListener('volumechange', () => {
   updateVolumeControls();
+  logAudioState('Volume changed');
   sendPlaybackState();
+});
+video.addEventListener('loadedmetadata', () => {
+  logAudioState('Media metadata loaded');
 });
 video.addEventListener('play', () => {
   appendActivity('Playback started.');
+  ensureMediaAudioOutput();
+  logAudioState('Playback started');
   startProgressLogging();
   sendPlaybackState();
 });
@@ -70,6 +82,9 @@ window.addEventListener('message', (event) => {
   if (message.type === 'loadSubtitle') {
     loadSubtitle(message.payload);
   }
+  if (message.type === 'appendActivity') {
+    appendActivity(message.message);
+  }
   if (message.type === 'pause') {
     video.pause();
     appendActivity('Quick hide pause applied.');
@@ -78,6 +93,7 @@ window.addEventListener('message', (event) => {
     setCornerPosition(message.position);
   }
   if (message.type === 'restoreState') {
+    video.muted = message.muted;
     video.volume = message.volume;
     video.currentTime = message.position;
   }
@@ -87,8 +103,8 @@ function loadVideo(payload) {
   stopProgressLogging();
   title.textContent = payload.name;
   video.src = payload.uri;
-  video.volume = payload.volume;
   video.muted = false;
+  video.volume = payload.volume;
   updateVolumeControls();
 
   if (typeof payload.position === 'number') {
@@ -308,6 +324,35 @@ function logVolumeChange() {
   }
   lastVolumeLogAt = now;
   appendActivity(`Volume set to ${Math.round(video.volume * 100)}%.`);
+}
+
+function logAudioState(context) {
+  appendActivity(
+    `${context}. Volume: ${Math.round(video.volume * 100)}% | Muted: ${video.muted ? 'yes' : 'no'} | Ready: ${video.readyState} | Network: ${video.networkState}`,
+  );
+}
+
+function ensureMediaAudioOutput() {
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) {
+    appendActivity('Web Audio output is not available.');
+    return;
+  }
+
+  try {
+    mediaAudioContext ??= new AudioContextConstructor();
+    mediaAudioSource ??= mediaAudioContext.createMediaElementSource(video);
+    if (!mediaAudioOutputConnected) {
+      mediaAudioSource.connect(mediaAudioContext.destination);
+      mediaAudioOutputConnected = true;
+      appendActivity('Audio output connected.');
+    }
+    if (mediaAudioContext.state === 'suspended') {
+      void mediaAudioContext.resume();
+    }
+  } catch (error) {
+    appendActivity(`Audio output setup failed: ${error?.message ?? String(error)}`);
+  }
 }
 
 function startProgressLogging() {

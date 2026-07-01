@@ -20,7 +20,7 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
 
   private view?: vscode.WebviewView;
   private latestVideo?: VideoPayload;
-  private latestState = { position: 0, volume: 0.7 };
+  private latestState = { position: 0, volume: 0.7, muted: false };
   private cornerPosition: CornerPosition;
   private resourceRoots: vscode.Uri[];
 
@@ -34,6 +34,10 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
   ) {
     this.cornerPosition = initialCornerPosition;
     this.resourceRoots = [context.extensionUri];
+  }
+
+  get extensionStoragePath(): string {
+    return this.context.globalStorageUri.fsPath;
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
@@ -78,6 +82,7 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
     subtitle?: SubtitlePayload,
     volume = 0.7,
     position = 0,
+    displayName = path.basename(videoPath),
   ): Promise<VideoPayload> {
     await this.show();
     const webview = this.requireWebview();
@@ -86,12 +91,13 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
 
     const payload: VideoPayload = {
       uri: webview.asWebviewUri(vscode.Uri.file(videoPath)).toString(),
-      name: path.basename(videoPath),
+      name: displayName,
       subtitle,
       volume,
       position,
     };
     this.latestVideo = payload;
+    this.latestState = { position, volume, muted: false };
     await this.post({ type: 'loadVideo', payload });
     return payload;
   }
@@ -100,6 +106,10 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
     await this.show();
     this.latestVideo = this.latestVideo ? { ...this.latestVideo, subtitle } : undefined;
     await this.post({ type: 'loadSubtitle', payload: subtitle });
+  }
+
+  async appendActivity(message: string): Promise<void> {
+    await this.post({ type: 'appendActivity', message });
   }
 
   private configureWebview(): void {
@@ -144,7 +154,7 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
       void this.post({ type: 'setCornerPosition', position: this.cornerPosition });
     }
     if (message.type === 'playbackState') {
-      this.latestState = { position: message.position, volume: message.volume };
+      this.latestState = { position: message.position, volume: message.volume, muted: message.muted === true };
       this.onPlaybackState({ position: message.position });
     }
     if (message.type === 'mediaError' || message.type === 'subtitleError') {

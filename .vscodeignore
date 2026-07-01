@@ -1,5 +1,7 @@
 .git/**
 .superpowers/**
+.worktrees/**
+.codex/**
 docs/**
 test/**
 src/**

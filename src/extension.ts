@@ -11,8 +11,9 @@ import { detectSubtitleFormat, matchingSubtitleCandidates } from './subtitles/ma
 import { convertSrtToVtt } from './subtitles/srt';
 import { normalizeVtt } from './subtitles/vtt';
 import type { CornerPosition, RecentPlaybackItem, SubtitlePayload } from './types';
+import { preparePlayableVideo } from './videoPreparation';
+import { assertSupportedVideoPath, SUPPORTED_VIDEO_EXTENSIONS } from './videoFormats';
 
-const VIDEO_FILTERS = ['mp4', 'webm', 'mkv', 'mov', 'avi', 'm4v'];
 const SUBTITLE_FILTERS = ['srt', 'vtt', 'ass', 'ssa'];
 
 let activeVideoPath: string | undefined;
@@ -76,12 +77,13 @@ async function openVideo(panel: PlayerPanel, recentStore: RecentStore): Promise<
     canSelectFiles: true,
     canSelectFolders: false,
     canSelectMany: false,
-    filters: { Videos: VIDEO_FILTERS },
+    filters: { Videos: [...SUPPORTED_VIDEO_EXTENSIONS] },
   });
   const videoUri = selected?.[0];
   if (!videoUri) {
     return;
   }
+  assertSupportedVideoPath(videoUri.fsPath);
 
   activeVideoPath = videoUri.fsPath;
   activeSubtitlePath = undefined;
@@ -90,7 +92,8 @@ async function openVideo(panel: PlayerPanel, recentStore: RecentStore): Promise<
   if (subtitle) {
     activeSubtitlePath = subtitle.filePath;
   }
-  await panel.loadVideo(videoUri.fsPath, subtitle?.payload, config.defaultVolume);
+  const playable = await prepareVideoForPanel(panel, videoUri.fsPath);
+  await panel.loadVideo(playable.playablePath, subtitle?.payload, config.defaultVolume, 0, path.basename(videoUri.fsPath));
   await saveActiveRecent(recentStore);
 }
 
@@ -128,12 +131,14 @@ async function openRecent(panel: PlayerPanel, recentStore: RecentStore): Promise
   }
 
   const videoPath = vscode.Uri.parse(selected.item.videoUri).fsPath;
+  assertSupportedVideoPath(videoPath);
   const subtitlePath = selected.item.subtitleUri ? vscode.Uri.parse(selected.item.subtitleUri).fsPath : undefined;
   const subtitle = subtitlePath ? await readSubtitlePayload(subtitlePath) : undefined;
   activeVideoPath = videoPath;
   activeSubtitlePath = subtitlePath;
   activePosition = selected.item.position;
-  await panel.loadVideo(videoPath, subtitle, readConfig().defaultVolume, activePosition);
+  const playable = await prepareVideoForPanel(panel, videoPath);
+  await panel.loadVideo(playable.playablePath, subtitle, readConfig().defaultVolume, activePosition, path.basename(videoPath));
 }
 
 async function toggleCornerPosition(panel: PlayerPanel): Promise<void> {
@@ -203,4 +208,41 @@ async function saveActiveRecent(recentStore: RecentStore): Promise<void> {
 function readConfig() {
   const config = vscode.workspace.getConfiguration('miniPlayer');
   return readMiniPlayerConfig((key) => config.get(key));
+}
+
+function getVideoCacheDir(panel: PlayerPanel): string {
+  return path.join(panel.extensionStoragePath, 'remuxed-videos');
+}
+
+async function prepareVideoForPanel(panel: PlayerPanel, videoPath: string) {
+  const isMkv = path.extname(videoPath).toLowerCase() === '.mkv';
+  let lastProgress = -1;
+  let lastProgressLoggedAt = 0;
+  if (isMkv) {
+    await panel.show();
+    await panel.appendActivity('Preparing MKV for VS Code playback... 0%');
+  }
+
+  const playable = await preparePlayableVideo({
+    filePath: videoPath,
+    cacheDir: getVideoCacheDir(panel),
+    onProgress: isMkv
+      ? (percent) => {
+        const now = Date.now();
+        if (percent < 100 && percent - lastProgress < 5 && now - lastProgressLoggedAt < 1000) {
+          return;
+        }
+
+        lastProgress = percent;
+        lastProgressLoggedAt = now;
+        void panel.appendActivity(`Preparing MKV for VS Code playback... ${percent}%`);
+      }
+      : undefined,
+  });
+
+  if (playable.isRemuxed) {
+    await panel.appendActivity(`Using remuxed MP4 cache: ${path.basename(playable.playablePath)}`);
+  }
+
+  return playable;
 }

@@ -37,10 +37,11 @@ export interface VideoPayload {
 export type ExtensionToWebviewMessage =
   | { type: 'loadVideo'; payload: VideoPayload }
   | { type: 'loadSubtitle'; payload: SubtitlePayload }
+  | { type: 'appendActivity'; message: string }
   | { type: 'setCornerPosition'; position: CornerPosition }
   | { type: 'setHideBehavior'; behavior: HideBehavior }
   | { type: 'pause' }
-  | { type: 'restoreState'; position: number; volume: number };
+  | { type: 'restoreState'; position: number; volume: number; muted: boolean };
 
 export type WebviewToExtensionMessage =
   | { type: 'ready' }

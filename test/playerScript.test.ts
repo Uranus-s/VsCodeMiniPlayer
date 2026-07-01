@@ -13,4 +13,32 @@ describe('player script activity log', () => {
     assert.match(playerScript, /Remaining: \$\{formatDuration\(remaining\)\}/);
     assert.match(playerScript, /Clock: \$\{formatClockTime\(\)\}/);
   });
+
+  it('uses a format-neutral media playback error message', () => {
+    assert.match(playerScript, /This video cannot be played in VS Code/);
+    assert.doesNotMatch(playerScript, /This MP4 cannot be played/);
+  });
+
+  it('can append activity messages sent by the extension host', () => {
+    assert.match(playerScript, /message\.type === 'appendActivity'/);
+    assert.match(playerScript, /appendActivity\(message\.message\)/);
+  });
+
+  it('logs runtime audio state for playback diagnostics', () => {
+    assert.match(playerScript, /logAudioState\('Media metadata loaded'\)/);
+    assert.match(playerScript, /logAudioState\('Playback started'\)/);
+    assert.match(playerScript, /Volume: \$\{Math\.round\(video\.volume \* 100\)\}%/);
+    assert.match(playerScript, /Muted: \$\{video\.muted \? 'yes' : 'no'\}/);
+  });
+
+  it('restores muted state explicitly from the extension host', () => {
+    assert.match(playerScript, /video\.muted = message\.muted;/);
+  });
+
+  it('connects media playback to the Web Audio output graph', () => {
+    assert.match(playerScript, /ensureMediaAudioOutput/);
+    assert.match(playerScript, /createMediaElementSource\(video\)/);
+    assert.match(playerScript, /mediaAudioSource\.connect\(mediaAudioContext\.destination\)/);
+    assert.match(playerScript, /Audio output connected\./);
+  });
 });
