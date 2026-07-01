@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import type {
   CornerPosition,
   ExtensionToWebviewMessage,
+  MiniPlayerLanguage,
   RecentPlaybackItem,
   SubtitlePayload,
   VideoPayload,
@@ -22,11 +23,13 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
   private latestVideo?: VideoPayload;
   private latestState = { position: 0, volume: 0.7, muted: false };
   private cornerPosition: CornerPosition;
+  private language: MiniPlayerLanguage;
   private resourceRoots: vscode.Uri[];
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     initialCornerPosition: CornerPosition,
+    initialLanguage: MiniPlayerLanguage,
     private readonly onPlaybackState: (item: Pick<RecentPlaybackItem, 'position'>) => void,
     private readonly onRequestSubtitle: () => void,
     private readonly onRequestRecent: () => void,
@@ -35,6 +38,7 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
     private readonly onRequestClearCache: () => void,
   ) {
     this.cornerPosition = initialCornerPosition;
+    this.language = initialLanguage;
     this.resourceRoots = [context.extensionUri];
   }
 
@@ -77,6 +81,11 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
   async setCornerPosition(position: CornerPosition): Promise<void> {
     this.cornerPosition = position;
     await this.post({ type: 'setCornerPosition', position });
+  }
+
+  async setLanguage(language: MiniPlayerLanguage): Promise<void> {
+    this.language = language;
+    await this.post({ type: 'setLanguage', language });
   }
 
   async loadVideo(
@@ -130,6 +139,7 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
       cspSource: webview.cspSource,
       scriptUri: webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'player.js')).toString(),
       styleUri: webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'player.css')).toString(),
+      language: this.language,
     });
   }
 
@@ -148,11 +158,13 @@ export class PlayerPanel implements vscode.WebviewViewProvider {
 
   private handleMessage(message: WebviewToExtensionMessage): void {
     if (message.type === 'ready' && this.latestVideo) {
+      void this.post({ type: 'setLanguage', language: this.language });
       void this.post({ type: 'setCornerPosition', position: this.cornerPosition });
       void this.post({ type: 'loadVideo', payload: this.latestVideo });
       void this.post({ type: 'restoreState', ...this.latestState });
     }
     if (message.type === 'ready' && !this.latestVideo) {
+      void this.post({ type: 'setLanguage', language: this.language });
       void this.post({ type: 'setCornerPosition', position: this.cornerPosition });
     }
     if (message.type === 'playbackState') {

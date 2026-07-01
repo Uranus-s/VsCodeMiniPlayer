@@ -14,6 +14,18 @@ describe('player script activity log', () => {
     assert.match(playerScript, /Clock: \$\{formatClockTime\(\)\}/);
   });
 
+  it('can switch toolbar labels and activity logs to Simplified Chinese', () => {
+    assert.match(playerScript, /message\.type === 'setLanguage'/);
+    assert.match(playerScript, /当前：\$\{formatDuration\(video\.currentTime\)\}/);
+    assert.match(playerScript, /剩余：\$\{formatDuration\(remaining\)\}/);
+    assert.match(playerScript, /时钟：\$\{formatClockTime\(\)\}/);
+    assert.match(playerScript, /播放器面板已就绪。/);
+    assert.match(playerScript, /字幕/);
+    assert.match(playerScript, /最近播放/);
+    assert.match(playerScript, /打开缓存/);
+    assert.match(playerScript, /清理缓存/);
+  });
+
   it('uses a format-neutral media playback error message', () => {
     assert.match(playerScript, /This video cannot be played in VS Code/);
     assert.doesNotMatch(playerScript, /This MP4 cannot be played/);

@@ -63,6 +63,12 @@
           "default": "right",
           "description": "Controls whether the compact Mini Player preview is pinned to the left or right side of the panel."
         },
+        "miniPlayer.language": {
+          "type": "string",
+          "enum": ["en", "zh-CN"],
+          "default": "en",
+          "description": "Controls the language used by Mini Player buttons, prompts, and playback activity logs."
+        },
         "miniPlayer.defaultVolume": {
           "type": "number",
           "minimum": 0,

@@ -70,6 +70,8 @@ describe('extension manifest', () => {
     assert.equal(properties['miniPlayer.hideBehavior'].default, 'pauseAndHide');
     assert.equal(properties['miniPlayer.cornerPosition'].default, 'right');
     assert.deepEqual(properties['miniPlayer.cornerPosition'].enum, ['left', 'right']);
+    assert.equal(properties['miniPlayer.language'].default, 'en');
+    assert.deepEqual(properties['miniPlayer.language'].enum, ['en', 'zh-CN']);
     assert.equal(properties['miniPlayer.defaultVolume'].default, 0.7);
     assert.equal(properties['miniPlayer.autoLoadMatchingSubtitle'].default, true);
     assert.equal(properties['miniPlayer.recentLimit'].default, 10);

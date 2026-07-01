@@ -9,8 +9,84 @@ const muteButton = document.getElementById('mute-button');
 const volumeSlider = document.getElementById('volume-slider');
 const cornerButton = document.getElementById('corner-button');
 const assLayer = document.getElementById('ass-layer');
+const activityLogTitle = document.querySelector('.activity-log-title');
+const activityLog = document.getElementById('activity-log');
 const activityLogLines = document.getElementById('activity-log-lines');
 const MAX_ACTIVITY_LOG_LINES = 100;
+const TEXT = {
+  en: {
+    activityLogTitle: 'Mini Player Activity',
+    activityLogAria: 'Mini Player activity log',
+    noVideoSelected: 'No video selected',
+    muteAria: 'Mute or unmute video',
+    volumeAria: 'Video volume',
+    cornerAria: 'Switch mini player side',
+    sound: 'Sound',
+    muted: 'Muted',
+    left: 'Left',
+    right: 'Right',
+    subtitle: 'Subtitle',
+    recent: 'Recent',
+    openCache: 'Open Cache',
+    clearCache: 'Clear Cache',
+    panelReady: 'Player panel ready.',
+    audioMuted: 'Audio muted.',
+    audioUnmuted: 'Audio unmuted.',
+    videoPlaybackError: 'Video playback error reported.',
+    mediaError: 'This video cannot be played in VS Code. Use a file encoded with codecs supported by VS Code.',
+    playbackStarted: 'Playback started.',
+    playbackPaused: 'Playback paused.',
+    quickHidePauseApplied: 'Quick hide pause applied.',
+    loadedVideo: (name) => `Loaded video: ${name}`,
+    loadedSubtitle: (format, name) => `Loaded ${format} subtitle: ${name}`,
+    loadedSubtitleNoDialogue: (format) => `Loaded ${format} subtitle with no readable dialogue.`,
+    subtitleNoDialogueError: 'ASS/SSA subtitle has no readable dialogue lines.',
+    unsupportedSubtitleFormat: (format) => `Unsupported subtitle format: ${format}`,
+    volumeSet: (volume) => `Volume set to ${volume}%.`,
+    audioState: (context, volume, muted, readyState, networkState) =>
+      `${context}. Volume: ${volume}% | Muted: ${muted ? 'yes' : 'no'} | Ready: ${readyState} | Network: ${networkState}`,
+    webAudioUnavailable: 'Web Audio output is not available.',
+    audioOutputConnected: 'Audio output connected.',
+    audioOutputSetupFailed: (message) => `Audio output setup failed: ${message}`,
+    previewPinned: (position) => `Preview pinned ${position}.`,
+  },
+  'zh-CN': {
+    activityLogTitle: '迷你播放器活动',
+    activityLogAria: '迷你播放器活动日志',
+    noVideoSelected: '未选择视频',
+    muteAria: '静音或取消静音视频',
+    volumeAria: '视频音量',
+    cornerAria: '切换迷你播放器侧边',
+    sound: '声音',
+    muted: '已静音',
+    left: '左侧',
+    right: '右侧',
+    subtitle: '字幕',
+    recent: '最近播放',
+    openCache: '打开缓存',
+    clearCache: '清理缓存',
+    panelReady: '播放器面板已就绪。',
+    audioMuted: '音频已静音。',
+    audioUnmuted: '音频已取消静音。',
+    videoPlaybackError: '已报告视频播放错误。',
+    mediaError: '此视频无法在 VS Code 中播放。请使用 VS Code 支持的编解码格式。',
+    playbackStarted: '播放已开始。',
+    playbackPaused: '播放已暂停。',
+    quickHidePauseApplied: '快速隐藏已暂停播放。',
+    loadedVideo: (name) => `已加载视频：${name}`,
+    loadedSubtitle: (format, name) => `已加载 ${format} 字幕：${name}`,
+    loadedSubtitleNoDialogue: (format) => `已加载 ${format} 字幕，但没有可读对白。`,
+    subtitleNoDialogueError: 'ASS/SSA 字幕没有可读对白行。',
+    unsupportedSubtitleFormat: (format) => `不支持的字幕格式：${format}`,
+    volumeSet: (volume) => `音量已设为 ${volume}%。`,
+    audioState: (context, volume, muted, readyState, networkState) =>
+      `${context}。音量：${volume}% | 静音：${muted ? '是' : '否'} | 就绪状态：${readyState} | 网络状态：${networkState}`,
+    webAudioUnavailable: 'Web Audio 输出不可用。',
+    audioOutputConnected: '音频输出已连接。',
+    audioOutputSetupFailed: (message) => `音频输出设置失败：${message}`,
+    previewPinned: (position) => `预览已固定在${position}。`,
+  },
+};
 
 let activeBlobUrl = undefined;
 let activeSubtitleTrack = undefined;
@@ -20,8 +96,11 @@ let progressLogTimer = undefined;
 let mediaAudioContext = undefined;
 let mediaAudioSource = undefined;
 let mediaAudioOutputConnected = false;
+let language = document.documentElement.lang === 'zh-CN' ? 'zh-CN' : 'en';
+let currentCornerPosition = 'right';
+let hasLoadedVideo = false;
 
-appendActivity('Player panel ready.');
+appendActivity(t().panelReady);
 
 subtitleButton.addEventListener('click', () => vscode.postMessage({ type: 'requestSubtitle' }));
 recentButton.addEventListener('click', () => vscode.postMessage({ type: 'requestRecent' }));
@@ -31,7 +110,7 @@ cornerButton.addEventListener('click', () => vscode.postMessage({ type: 'request
 muteButton.addEventListener('click', () => {
   video.muted = !video.muted;
   updateVolumeControls();
-  appendActivity(video.muted ? 'Audio muted.' : 'Audio unmuted.');
+  appendActivity(video.muted ? t().audioMuted : t().audioUnmuted);
   sendPlaybackState();
 });
 volumeSlider.addEventListener('input', () => {
@@ -42,10 +121,10 @@ volumeSlider.addEventListener('input', () => {
 });
 
 video.addEventListener('error', () => {
-  appendActivity('Video playback error reported.');
+  appendActivity(t().videoPlaybackError);
   vscode.postMessage({
     type: 'mediaError',
-    message: 'This video cannot be played in VS Code. Use a file encoded with codecs supported by VS Code.',
+    message: t().mediaError,
   });
 });
 
@@ -62,7 +141,7 @@ video.addEventListener('loadedmetadata', () => {
   logAudioState('Media metadata loaded');
 });
 video.addEventListener('play', () => {
-  appendActivity('Playback started.');
+  appendActivity(t().playbackStarted);
   ensureMediaAudioOutput();
   logAudioState('Playback started');
   startProgressLogging();
@@ -70,7 +149,7 @@ video.addEventListener('play', () => {
 });
 video.addEventListener('pause', () => {
   stopProgressLogging();
-  appendActivity('Playback paused.');
+  appendActivity(t().playbackPaused);
   sendPlaybackState();
 });
 video.addEventListener('ended', () => {
@@ -90,9 +169,12 @@ window.addEventListener('message', (event) => {
   if (message.type === 'appendActivity') {
     appendActivity(message.message);
   }
+  if (message.type === 'setLanguage') {
+    setLanguage(message.language);
+  }
   if (message.type === 'pause') {
     video.pause();
-    appendActivity('Quick hide pause applied.');
+    appendActivity(t().quickHidePauseApplied);
   }
   if (message.type === 'setCornerPosition') {
     setCornerPosition(message.position);
@@ -106,6 +188,7 @@ window.addEventListener('message', (event) => {
 
 function loadVideo(payload) {
   stopProgressLogging();
+  hasLoadedVideo = true;
   title.textContent = payload.name;
   video.src = payload.uri;
   video.muted = false;
@@ -115,7 +198,7 @@ function loadVideo(payload) {
   if (typeof payload.position === 'number') {
     video.currentTime = payload.position;
   }
-  appendActivity(`Loaded video: ${payload.name}`);
+  appendActivity(t().loadedVideo(payload.name));
   if (payload.subtitle) {
     loadSubtitle(payload.subtitle);
   }
@@ -126,22 +209,22 @@ function loadSubtitle(payload) {
 
   if (payload.format === 'srt' || payload.format === 'vtt') {
     loadTextTrack(payload);
-    appendActivity(`Loaded ${payload.format.toUpperCase()} subtitle: ${payload.name}`);
+    appendActivity(t().loadedSubtitle(payload.format.toUpperCase(), payload.name));
     return;
   }
   if (payload.format === 'ass' || payload.format === 'ssa') {
     assCues = parseAssDialogueLines(payload.content ?? '');
     if (assCues.length === 0) {
-      appendActivity(`Loaded ${payload.format.toUpperCase()} subtitle with no readable dialogue.`);
-      vscode.postMessage({ type: 'subtitleError', message: 'ASS/SSA subtitle has no readable dialogue lines.' });
+      appendActivity(t().loadedSubtitleNoDialogue(payload.format.toUpperCase()));
+      vscode.postMessage({ type: 'subtitleError', message: t().subtitleNoDialogueError });
     }
-    appendActivity(`Loaded ${payload.format.toUpperCase()} subtitle: ${payload.name}`);
+    appendActivity(t().loadedSubtitle(payload.format.toUpperCase(), payload.name));
     renderAssCue();
     return;
   }
 
-  appendActivity(`Unsupported subtitle format: ${payload.format}`);
-  vscode.postMessage({ type: 'subtitleError', message: `Unsupported subtitle format: ${payload.format}` });
+  appendActivity(t().unsupportedSubtitleFormat(payload.format));
+  vscode.postMessage({ type: 'subtitleError', message: t().unsupportedSubtitleFormat(payload.format) });
 }
 
 function loadTextTrack(payload) {
@@ -310,16 +393,17 @@ function sendPlaybackState() {
 
 function updateVolumeControls() {
   volumeSlider.value = String(video.volume);
-  muteButton.textContent = video.muted || video.volume === 0 ? 'Muted' : 'Sound';
+  muteButton.textContent = video.muted || video.volume === 0 ? t().muted : t().sound;
   muteButton.setAttribute('aria-pressed', String(video.muted || video.volume === 0));
 }
 
 function setCornerPosition(position) {
   const next = position === 'left' ? 'left' : 'right';
+  currentCornerPosition = next;
   document.body.classList.toggle('corner-left', next === 'left');
   document.body.classList.toggle('corner-right', next === 'right');
-  cornerButton.textContent = next === 'left' ? 'Left' : 'Right';
-  appendActivity(`Preview pinned ${next}.`);
+  cornerButton.textContent = next === 'left' ? t().left : t().right;
+  appendActivity(t().previewPinned(next === 'left' ? t().left : t().right));
 }
 
 function logVolumeChange() {
@@ -328,19 +412,27 @@ function logVolumeChange() {
     return;
   }
   lastVolumeLogAt = now;
-  appendActivity(`Volume set to ${Math.round(video.volume * 100)}%.`);
+  appendActivity(t().volumeSet(Math.round(video.volume * 100)));
 }
 
 function logAudioState(context) {
+  const localizedContext = translateAudioContext(context);
+  if (language === 'en') {
+    appendActivity(
+      `${context}. Volume: ${Math.round(video.volume * 100)}% | Muted: ${video.muted ? 'yes' : 'no'} | Ready: ${video.readyState} | Network: ${video.networkState}`,
+    );
+    return;
+  }
+
   appendActivity(
-    `${context}. Volume: ${Math.round(video.volume * 100)}% | Muted: ${video.muted ? 'yes' : 'no'} | Ready: ${video.readyState} | Network: ${video.networkState}`,
+    t().audioState(localizedContext, Math.round(video.volume * 100), video.muted, video.readyState, video.networkState),
   );
 }
 
 function ensureMediaAudioOutput() {
   const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextConstructor) {
-    appendActivity('Web Audio output is not available.');
+    appendActivity(t().webAudioUnavailable);
     return;
   }
 
@@ -350,13 +442,13 @@ function ensureMediaAudioOutput() {
     if (!mediaAudioOutputConnected) {
       mediaAudioSource.connect(mediaAudioContext.destination);
       mediaAudioOutputConnected = true;
-      appendActivity('Audio output connected.');
+      appendActivity(t().audioOutputConnected);
     }
     if (mediaAudioContext.state === 'suspended') {
       void mediaAudioContext.resume();
     }
   } catch (error) {
-    appendActivity(`Audio output setup failed: ${error?.message ?? String(error)}`);
+    appendActivity(t().audioOutputSetupFailed(error?.message ?? String(error)));
   }
 }
 
@@ -378,9 +470,9 @@ function stopProgressLogging() {
 function appendProgressActivity() {
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
   const remaining = Math.max(0, duration - video.currentTime);
-  appendActivity(
-    `Current: ${formatDuration(video.currentTime)} | Remaining: ${formatDuration(remaining)} | Clock: ${formatClockTime()}`,
-  );
+  appendActivity(language === 'zh-CN'
+    ? `当前：${formatDuration(video.currentTime)} | 剩余：${formatDuration(remaining)} | 时钟：${formatClockTime()}`
+    : `Current: ${formatDuration(video.currentTime)} | Remaining: ${formatDuration(remaining)} | Clock: ${formatClockTime()}`);
 }
 
 function formatDuration(seconds) {
@@ -416,6 +508,52 @@ function appendActivity(message) {
   if (shouldStickToBottom) {
     activityLogLines.scrollTop = activityLogLines.scrollHeight;
   }
+}
+
+function setLanguage(nextLanguage) {
+  language = nextLanguage === 'zh-CN' ? 'zh-CN' : 'en';
+  document.documentElement.lang = language;
+  applyLanguageToControls();
+}
+
+function applyLanguageToControls() {
+  const text = t();
+  activityLog.setAttribute('aria-label', text.activityLogAria);
+  activityLogTitle.textContent = text.activityLogTitle;
+  muteButton.setAttribute('aria-label', text.muteAria);
+  volumeSlider.setAttribute('aria-label', text.volumeAria);
+  cornerButton.setAttribute('aria-label', text.cornerAria);
+  subtitleButton.textContent = text.subtitle;
+  recentButton.textContent = text.recent;
+  openCacheButton.textContent = text.openCache;
+  clearCacheButton.textContent = text.clearCache;
+  if (!hasLoadedVideo) {
+    title.textContent = text.noVideoSelected;
+  }
+  updateVolumeControls();
+  cornerButton.textContent = currentCornerPosition === 'left' ? text.left : text.right;
+}
+
+function translateAudioContext(context) {
+  if (language !== 'zh-CN') {
+    return context;
+  }
+
+  if (context === 'Volume changed') {
+    return '音量已更改';
+  }
+  if (context === 'Media metadata loaded') {
+    return '媒体元数据已加载';
+  }
+  if (context === 'Playback started') {
+    return '播放已开始';
+  }
+
+  return context;
+}
+
+function t() {
+  return TEXT[language] ?? TEXT.en;
 }
 
 vscode.postMessage({ type: 'ready' });

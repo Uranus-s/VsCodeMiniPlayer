@@ -27,4 +27,24 @@ describe('createPlayerHtml', () => {
     assert.match(html, /id="activity-log"/);
     assert.match(html, /<script nonce="fixed-nonce" src="vscode-resource:\/media\/player\.js"><\/script>/);
   });
+
+  it('can create a Simplified Chinese player document', () => {
+    const html = createPlayerHtml({
+      cspSource: 'vscode-resource:',
+      scriptUri: 'vscode-resource:/media/player.js',
+      styleUri: 'vscode-resource:/media/player.css',
+      nonce: 'fixed-nonce',
+      language: 'zh-CN',
+    });
+
+    assert.match(html, /<html lang="zh-CN">/);
+    assert.match(html, /迷你播放器活动/);
+    assert.match(html, /未选择视频/);
+    assert.match(html, /声音/);
+    assert.match(html, /右侧/);
+    assert.match(html, /字幕/);
+    assert.match(html, /最近播放/);
+    assert.match(html, /打开缓存/);
+    assert.match(html, /清理缓存/);
+  });
 });

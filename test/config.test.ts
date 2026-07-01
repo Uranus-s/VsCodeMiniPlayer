@@ -7,6 +7,7 @@ describe('normalizeConfig', () => {
     assert.deepEqual(normalizeConfig({}), {
       hideBehavior: 'pauseAndHide',
       cornerPosition: 'right',
+      language: 'en',
       defaultVolume: 0.7,
       autoLoadMatchingSubtitle: true,
       recentLimit: 10,
@@ -18,6 +19,7 @@ describe('normalizeConfig', () => {
       normalizeConfig({
         hideBehavior: 'keepPlayingAndHide',
         cornerPosition: 'left',
+        language: 'zh-CN',
         defaultVolume: 0.25,
         autoLoadMatchingSubtitle: false,
         recentLimit: 12,
@@ -25,6 +27,7 @@ describe('normalizeConfig', () => {
       {
         hideBehavior: 'keepPlayingAndHide',
         cornerPosition: 'left',
+        language: 'zh-CN',
         defaultVolume: 0.25,
         autoLoadMatchingSubtitle: false,
         recentLimit: 12,
@@ -44,6 +47,7 @@ describe('normalizeConfig', () => {
       normalizeConfig({
         hideBehavior: 'hideInstantly',
         cornerPosition: 'center',
+        language: 'fr',
         defaultVolume: Number.NaN,
         autoLoadMatchingSubtitle: 'yes',
         recentLimit: '10',
@@ -51,6 +55,7 @@ describe('normalizeConfig', () => {
       {
         hideBehavior: 'pauseAndHide',
         cornerPosition: 'right',
+        language: 'en',
         defaultVolume: 0.7,
         autoLoadMatchingSubtitle: true,
         recentLimit: 10,
@@ -65,6 +70,7 @@ describe('readMiniPlayerConfig', () => {
     const values = new Map<string, unknown>([
       ['hideBehavior', 'keepPlayingAndHide'],
       ['cornerPosition', 'left'],
+      ['language', 'zh-CN'],
       ['defaultVolume', 0.4],
       ['autoLoadMatchingSubtitle', false],
       ['recentLimit', 7],
@@ -78,6 +84,7 @@ describe('readMiniPlayerConfig', () => {
     assert.deepEqual(requested, [
       'hideBehavior',
       'cornerPosition',
+      'language',
       'defaultVolume',
       'autoLoadMatchingSubtitle',
       'recentLimit',
@@ -85,6 +92,7 @@ describe('readMiniPlayerConfig', () => {
     assert.deepEqual(result, {
       hideBehavior: 'keepPlayingAndHide',
       cornerPosition: 'left',
+      language: 'zh-CN',
       defaultVolume: 0.4,
       autoLoadMatchingSubtitle: false,
       recentLimit: 7,

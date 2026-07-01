@@ -1,10 +1,12 @@
 export type HideBehavior = 'pauseAndHide' | 'keepPlayingAndHide';
 export type CornerPosition = 'left' | 'right';
+export type MiniPlayerLanguage = 'en' | 'zh-CN';
 export type SubtitleFormat = 'srt' | 'vtt' | 'ass' | 'ssa';
 
 export interface MiniPlayerConfig {
   hideBehavior: HideBehavior;
   cornerPosition: CornerPosition;
+  language: MiniPlayerLanguage;
   defaultVolume: number;
   autoLoadMatchingSubtitle: boolean;
   recentLimit: number;
@@ -39,6 +41,7 @@ export type ExtensionToWebviewMessage =
   | { type: 'loadSubtitle'; payload: SubtitlePayload }
   | { type: 'appendActivity'; message: string }
   | { type: 'setCornerPosition'; position: CornerPosition }
+  | { type: 'setLanguage'; language: MiniPlayerLanguage }
   | { type: 'setHideBehavior'; behavior: HideBehavior }
   | { type: 'pause' }
   | { type: 'restoreState'; position: number; volume: number; muted: boolean };

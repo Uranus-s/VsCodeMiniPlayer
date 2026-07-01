@@ -4,6 +4,7 @@ import path from 'node:path';
 import * as vscode from 'vscode';
 import { formatCommandError } from './commandErrors';
 import { readMiniPlayerConfig } from './config';
+import { getHostText } from './localization';
 import { PlayerPanel } from './playerPanel';
 import { RecentStore } from './recentStore';
 import { createAssPayload } from './subtitles/ass';
@@ -27,6 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const panel = new PlayerPanel(
     context,
     readConfig().cornerPosition,
+    readConfig().language,
     (state) => {
       activePosition = state.position;
       scheduleRecentSave(recentStore);
@@ -56,6 +58,9 @@ export function activate(context: vscode.ExtensionContext): void {
       if (event.affectsConfiguration('miniPlayer.cornerPosition')) {
         void runCommand(() => panel.setCornerPosition(readConfig().cornerPosition));
       }
+      if (event.affectsConfiguration('miniPlayer.language')) {
+        void runCommand(() => panel.setLanguage(readConfig().language));
+      }
     }),
   );
 }
@@ -76,11 +81,12 @@ async function runCommand(action: () => Promise<void>): Promise<void> {
 
 async function openVideo(panel: PlayerPanel, recentStore: RecentStore): Promise<void> {
   const config = readConfig();
+  const text = getHostText(config.language);
   const selected = await vscode.window.showOpenDialog({
     canSelectFiles: true,
     canSelectFolders: false,
     canSelectMany: false,
-    filters: { Videos: [...SUPPORTED_VIDEO_EXTENSIONS] },
+    filters: { [text.videoFilter]: [...SUPPORTED_VIDEO_EXTENSIONS] },
   });
   const videoUri = selected?.[0];
   if (!videoUri) {
@@ -105,14 +111,14 @@ async function openSubtitle(panel: PlayerPanel, recentStore: RecentStore): Promi
     canSelectFiles: true,
     canSelectFolders: false,
     canSelectMany: false,
-    filters: { Subtitles: SUBTITLE_FILTERS },
+    filters: { [getHostText(readConfig().language).subtitleFilter]: SUBTITLE_FILTERS },
   });
   const subtitleUri = selected?.[0];
   if (!subtitleUri) {
     return;
   }
 
-  const payload = await readSubtitlePayload(subtitleUri.fsPath);
+  const payload = await readSubtitlePayload(subtitleUri.fsPath, readConfig().language);
   activeSubtitlePath = subtitleUri.fsPath;
   await panel.loadSubtitle(payload);
   await saveActiveRecent(recentStore);
@@ -120,14 +126,15 @@ async function openSubtitle(panel: PlayerPanel, recentStore: RecentStore): Promi
 
 async function openRecent(panel: PlayerPanel, recentStore: RecentStore): Promise<void> {
   const items = recentStore.list();
+  const text = getHostText(readConfig().language);
   if (items.length === 0) {
-    void vscode.window.showInformationMessage('Mini Player has no recent videos yet.');
+    void vscode.window.showInformationMessage(text.noRecentVideos);
     return;
   }
 
   const selected = await vscode.window.showQuickPick(
     items.map((item) => ({ label: item.videoName, description: item.subtitleName, item })),
-    { placeHolder: 'Open recent Mini Player video' },
+    { placeHolder: text.recentPlaceholder },
   );
   if (!selected) {
     return;
@@ -136,7 +143,7 @@ async function openRecent(panel: PlayerPanel, recentStore: RecentStore): Promise
   const videoPath = vscode.Uri.parse(selected.item.videoUri).fsPath;
   assertSupportedVideoPath(videoPath);
   const subtitlePath = selected.item.subtitleUri ? vscode.Uri.parse(selected.item.subtitleUri).fsPath : undefined;
-  const subtitle = subtitlePath ? await readSubtitlePayload(subtitlePath) : undefined;
+  const subtitle = subtitlePath ? await readSubtitlePayload(subtitlePath, readConfig().language) : undefined;
   activeVideoPath = videoPath;
   activeSubtitlePath = subtitlePath;
   activePosition = selected.item.position;
@@ -162,10 +169,10 @@ async function findMatchingSubtitle(videoPath: string): Promise<{ filePath: stri
   return undefined;
 }
 
-async function readSubtitlePayload(filePath: string): Promise<SubtitlePayload> {
+async function readSubtitlePayload(filePath: string, language = readConfig().language): Promise<SubtitlePayload> {
   const format = detectSubtitleFormat(filePath);
   if (!format) {
-    throw new Error(`Unsupported subtitle file: ${filePath}`);
+    throw new Error(getHostText(language).unsupportedSubtitleFile(filePath));
   }
 
   const raw = await readFile(filePath, 'utf8');
@@ -214,26 +221,27 @@ function readConfig() {
 }
 
 async function openVideoCache(panel: PlayerPanel): Promise<void> {
+  const text = getHostText(readConfig().language);
   const cacheDir = getVideoCacheDir(panel);
   await ensureVideoCacheDirectory(cacheDir);
   await vscode.env.openExternal(vscode.Uri.file(cacheDir));
-  await panel.appendActivity(`Opened MKV cache folder: ${cacheDir}`);
+  await panel.appendActivity(text.openedMkvCacheFolder(cacheDir));
 }
 
 async function clearVideoCache(panel: PlayerPanel): Promise<void> {
+  const text = getHostText(readConfig().language);
   const confirmed = await vscode.window.showWarningMessage(
-    'Delete all cached MKV playback files? Original videos and recent playback entries will not be changed.',
+    text.clearCacheWarning,
     { modal: true },
-    'Clear Cache',
+    text.clearCacheButton,
   );
-  if (confirmed !== 'Clear Cache') {
+  if (confirmed !== text.clearCacheButton) {
     return;
   }
 
   const result = await clearVideoCacheDirectory(getVideoCacheDir(panel));
-  const entryLabel = result.deletedEntries === 1 ? 'entry' : 'entries';
-  await panel.appendActivity(`Cleared MKV cache: ${result.deletedEntries} ${entryLabel} removed.`);
-  void vscode.window.showInformationMessage(`Mini Player cache cleared (${result.deletedEntries} ${entryLabel} removed).`);
+  await panel.appendActivity(text.clearedMkvCache(result.deletedEntries));
+  void vscode.window.showInformationMessage(text.cacheClearedInfo(result.deletedEntries));
 }
 
 function getVideoCacheDir(panel: PlayerPanel): string {
@@ -246,7 +254,7 @@ async function prepareVideoForPanel(panel: PlayerPanel, videoPath: string) {
   let lastProgressLoggedAt = 0;
   if (isMkv) {
     await panel.show();
-    await panel.appendActivity('Preparing MKV for VS Code playback... 0%');
+    await panel.appendActivity(getHostText(readConfig().language).preparingMkv(0));
   }
 
   const playable = await preparePlayableVideo({
@@ -261,13 +269,13 @@ async function prepareVideoForPanel(panel: PlayerPanel, videoPath: string) {
 
         lastProgress = percent;
         lastProgressLoggedAt = now;
-        void panel.appendActivity(`Preparing MKV for VS Code playback... ${percent}%`);
+        void panel.appendActivity(getHostText(readConfig().language).preparingMkv(percent));
       }
       : undefined,
   });
 
   if (playable.isRemuxed) {
-    await panel.appendActivity(`Using remuxed MP4 cache: ${path.basename(playable.playablePath)}`);
+    await panel.appendActivity(getHostText(readConfig().language).usingRemuxedCache(path.basename(playable.playablePath)));
   }
 
   return playable;
